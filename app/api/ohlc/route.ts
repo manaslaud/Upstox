@@ -161,22 +161,13 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-async function collect(
-  body: { symbol?: unknown; tf?: unknown; days?: unknown },
+async function collectSymbol(
+  requestedSymbol: string,
+  timeframe: string,
+  days: number,
   token: string,
 ) {
-  const symbol = String(body.symbol ?? "").trim().slice(0, 50);
-  const timeframe = body.tf;
-  const days = Number(body.days ?? 7);
-  if (
-    !symbol ||
-    !["15", "30", "day"].includes(String(timeframe)) ||
-    !Number.isInteger(days) ||
-    days < 1 ||
-    days > 30
-  ) {
-    throw new Error("Invalid request fields");
-  }
+  const symbol = requestedSymbol.trim().slice(0, 50);
 
   const search = asRecord(
     await upstoxApi("/v2/instruments/search", token, {
@@ -273,6 +264,35 @@ async function collect(
   };
 }
 
+function validateRequest(body: Record<string, unknown>) {
+  const rawSymbols = body.symbols ?? [body.symbol];
+  if (
+    !Array.isArray(rawSymbols) ||
+    rawSymbols.length < 1 ||
+    rawSymbols.length > 5 ||
+    rawSymbols.some(
+      (symbol) => typeof symbol !== "string" || !symbol.trim(),
+    )
+  ) {
+    throw new Error("Enter between 1 and 5 ticker names.");
+  }
+
+  const symbols = rawSymbols.map((symbol: string) =>
+    symbol.trim().slice(0, 50),
+  );
+  const timeframe = String(body.tf ?? "");
+  const days = Number(body.days ?? 7);
+  if (
+    !["15", "30", "day"].includes(timeframe) ||
+    !Number.isInteger(days) ||
+    days < 1 ||
+    days > 30
+  ) {
+    throw new Error("Invalid request fields");
+  }
+  return { symbols, timeframe, days };
+}
+
 export async function POST(request: Request) {
   if (!isAuthBypassEnabled()) {
     const session = await getServerSession(authOptions);
@@ -321,8 +341,24 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    const { symbols, timeframe, days } = validateRequest(
+      body as Record<string, unknown>,
+    );
+    const results = await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          return await collectSymbol(symbol, timeframe, days, token);
+        } catch (cause) {
+          return {
+            symbol,
+            error: cause instanceof Error ? cause.message : String(cause),
+            rows: [],
+          };
+        }
+      }),
+    );
     return NextResponse.json(
-      await collect(body as { symbol?: unknown; tf?: unknown; days?: unknown }, token),
+      { results },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (cause) {

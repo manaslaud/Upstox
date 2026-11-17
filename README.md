@@ -91,7 +91,7 @@ Request body:
 
 ```json
 {
-  "symbol": "TCS",
+  "symbols": ["TCS", "INFY"],
   "tf": "15",
   "days": 7
 }
@@ -99,7 +99,7 @@ Request body:
 
 #### Supported values
 
-- `symbol`: exact or near-exact NSE trading symbol
+- `symbols`: 1 to 5 NSE trading symbols or company names
 - `tf`: `15`, `30`, or `day`
 - `days`: integer from `1` to `30`
 
@@ -111,42 +111,37 @@ sign-in. For normal use, submit requests through the app UI.
 ```bash
 curl -X POST http://localhost:3000/api/ohlc \
   -H "Content-Type: application/json" \
-  -d '{"symbol":"TCS","tf":"15","days":7}'
+  -d '{"symbols":["TCS","INFY"],"tf":"15","days":7}'
 ```
 
 ### Example response
 
 ```json
 {
-  "symbol": "TCS",
-  "instrument_key": "NSE_EQ|INE467B01029",
-  "fetched": "2026-11-17 15:30:00 IST",
-  "latest": {
-    "timestamp": "2026-11-17 15:30:00 IST",
-    "open": 3860,
-    "high": 3878,
-    "low": 3858,
-    "close": 3871,
-    "volume": 183456,
-    "oi": "",
-    "status": "Completed"
-  },
-  "forming": {
-    "timestamp": "2026-11-17 15:45:00 IST",
-    "open": 3871,
-    "high": 3880,
-    "low": 3868,
-    "close": 3879,
-    "volume": 94231,
-    "oi": "",
-    "status": "Forming"
-  },
-  "previous": {
-    "date": "2026-11-16",
-    "high": 3895,
-    "low": 3838
-  },
-  "rows": []
+  "results": [
+    {
+      "symbol": "TCS",
+      "instrument_key": "NSE_EQ|INE467B01029",
+      "fetched": "2026-11-17 15:30:00 IST",
+      "latest": {
+        "timestamp": "2026-11-17 15:30:00 IST",
+        "open": 3860,
+        "high": 3878,
+        "low": 3858,
+        "close": 3871,
+        "volume": 183456,
+        "oi": "",
+        "status": "Completed"
+      },
+      "forming": null,
+      "previous": {
+        "date": "2026-11-16",
+        "high": 3895,
+        "low": 3838
+      },
+      "rows": []
+    }
+  ]
 }
 ```
 
