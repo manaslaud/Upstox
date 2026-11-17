@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import {
+  authOptions,
+  isAllowedEmail,
+  isAuthBypassEnabled,
+} from "../../../auth";
 
 export const dynamic = "force-dynamic";
 
@@ -268,6 +274,22 @@ async function collect(
 }
 
 export async function POST(request: Request) {
+  if (!isAuthBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Sign in with an approved Google account to continue." },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    if (!isAllowedEmail(session.user?.email)) {
+      return NextResponse.json(
+        { error: "This account is not authorized to use the scanner." },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
   const token = process.env.UPSTOX_TOKEN?.trim();
   if (!token) {
     return NextResponse.json(

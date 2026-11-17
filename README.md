@@ -34,6 +34,7 @@ The implementation is built around the route in `app/api/ohlc/route.ts` and is i
 - Node.js 18+
 - npm
 - An Upstox API token
+- Google OAuth client credentials
 
 ## Setup
 
@@ -43,11 +44,29 @@ The implementation is built around the route in `app/api/ohlc/route.ts` and is i
    npm install
    ```
 
-2. Create a `.env` file in the project root with your Upstox token:
+2. Create a `.env` file in the project root. See `.env.example` for the
+   required variable names:
 
    ```env
    UPSTOX_TOKEN=your_upstox_access_token
+   GOOGLE_CLIENT_ID=your_google_oauth_client_id
+   GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+   NEXTAUTH_SECRET=your_random_secret
+   ALLOWED_EMAILS=person@example.com,another@example.com
+   AUTH_BYPASS=false
    ```
+
+   `ALLOWED_EMAILS` is a comma-separated server-only list. It is not sent to
+   the browser. An empty or missing list denies all sign-ins. Generate a
+   session secret with `openssl rand -base64 32`.
+
+   For local development only, set `AUTH_BYPASS=true` to skip Google sign-in
+   and the email allowlist. This switch depends only on `AUTH_BYPASS`; never
+   set it to `true` in production.
+
+3. In Google Cloud, add this authorized redirect URI for local development:
+   `http://localhost:3000/api/auth/callback/google`. Use your deployment
+   hostname with the same path in production.
 
 ## Run locally
 
@@ -64,6 +83,9 @@ http://localhost:3000
 ## API endpoint
 
 ### POST `/api/ohlc`
+
+This endpoint requires a signed-in Google session whose email is currently in
+the server-side `ALLOWED_EMAILS` list.
 
 Request body:
 
@@ -82,6 +104,9 @@ Request body:
 - `days`: integer from `1` to `30`
 
 ### Example request
+
+The API requires the authenticated session cookie from an approved Google
+sign-in. For normal use, submit requests through the app UI.
 
 ```bash
 curl -X POST http://localhost:3000/api/ohlc \
